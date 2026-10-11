@@ -92,27 +92,29 @@ export const Dashboard = () => {
     }
 
     async function handleInvite(id: string){
+        console.log("hello there")
         try {
             const token = localStorage.getItem("token");
-
+            console.log("hello1")
             if(!token) return;
-
+            
+            console.log("hello2")
             if(!id || !username) return;
+            console.log("hello3")
             
             const response = await axios.post(`${API_BASE_URL}/invite`, {
-                name: username
+                username: username,
+                organizationId: id
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-
-
-
+            console.log(response.data);
             
         } catch (error) {
-            
+
         }
     }
 
@@ -179,7 +181,7 @@ export const Dashboard = () => {
                                         >
                                             Invite
                                         </button>
-                                        <input className="border" placeholder="username" />username
+                                        <input className="border" placeholder="username" onChange={(e)=> setUsername(e.target.value)} />username
                                     </div>
                                 ))}
                             </div>

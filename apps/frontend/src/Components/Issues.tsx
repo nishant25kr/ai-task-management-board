@@ -236,6 +236,7 @@ export const Issue = () => {
           break;
 
         case 'update-issue':
+          console.log("message",msg)
           const issueId = msg.payload.issueId;
           const updatedSection = msg.payload.updatedSection;
           setTask(prev => prev.map(item =>

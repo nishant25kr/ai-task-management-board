@@ -45,8 +45,8 @@ const updateIssueSchema = z.object({
 })
 
 const inviteUserSchema = z.object({
-    username: z.string,
-    organizationId: z.string,
+    username: z.string(),
+    organizationId: z.string(),
 
 })
 

@@ -487,6 +487,7 @@ export class User {
                     }
 
                     case "create-board": {
+                        //todo: validate the req is made by admin
                         const isValid = CreateBoardSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
                             this.sendError("Invalid payload for create-board");

@@ -1,5 +1,5 @@
 import router from "express";
-import { getUser, createUser, signIn }  from "../controllers/userController";
+import { getUser, createUser, signIn, invite }  from "../controllers/userController";
 import { createOrg, getOrg } from "../controllers/orgController";
 import { createIssue, getIssue, updateIssue } from "../controllers/issueController";
 import { createSection, getSection } from "../controllers/sectionController";
