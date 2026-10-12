@@ -8,6 +8,7 @@ import { Navbar } from "../Components/Navbar";
 export const Dashboard = () => {
     const navigate = useNavigate();
     const [organizations, setOrganizations] = useState<Organization[] | null>(null);
+    const [memberorganizations, setMemberOrganizations] = useState<Organization[] | null>(null);
     const [user, setUser] = useState<User | null>(null)
     const [name, setName] = useState<string>("")
     const [description, setDescription] = useState<string>("")
@@ -41,7 +42,8 @@ export const Dashboard = () => {
                         console.log("Error fetching organization data");
                         return;
                     }
-                    setOrganizations(response.data)
+                    setOrganizations(response.data.admin)
+                    setMemberOrganizations(response.data.member)
 
                 } catch (error: any) {
                     console.log("error", error.message)
@@ -112,7 +114,7 @@ export const Dashboard = () => {
             });
 
             console.log(response.data);
-            
+
         } catch (error) {
 
         }
@@ -182,6 +184,19 @@ export const Dashboard = () => {
                                             Invite
                                         </button>
                                         <input className="border" placeholder="username" onChange={(e)=> setUsername(e.target.value)} />username
+                                    </div>
+                                ))}
+                                {memberorganizations?.map(org => (
+                                    <div key={org.id} className="rounded-lg border border-slate-200 p-4">
+                                        <h3 className="text-lg font-medium">{org.name}</h3>
+                                        <p className="mt-2 text-sm text-slate-600">{org.description}</p>
+                                        <button
+                                            onClick={() => handleJoin(org.id)}
+                                            className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                        >
+                                            Open board
+                                        </button>
+                                    
                                     </div>
                                 ))}
                             </div>

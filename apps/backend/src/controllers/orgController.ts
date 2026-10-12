@@ -3,33 +3,45 @@ import { prisma } from "@repo/db";
 import { createOrgSchema, type AuthenticatedRequest } from '../types';
 
 const getOrg = async (req: Request, res: Response) => {
-    const authReq = req as unknown as AuthenticatedRequest;
-    if (!authReq.user?.userId) {
+    const userId = (req as AuthenticatedRequest).user?.userId;
+
+    if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
     }
-    const userID = authReq.user.userId;
-    if (!userID || Array.isArray(userID)) {
-        return res.status(400).json({ error: "Organization ID is required" });
-    }
 
-    const org = await prisma.membership.findMany({
-        where: {
-            userId: userID
-        }
-    })
+    try {
+        const memberships = await prisma.membership.findMany({
+            where: { userId },
+            select: {
+                role: true,
+                organisationId: true,
+            },
+        });
 
-    const response = await prisma.organization.findMany({
-        where: {
-            id: {
-                in: org.map(o => o.organisationId)
+        const admin = await prisma.organization.findMany({
+            where: {
+                id: {
+                    in: memberships
+                        .filter((m) => m.role === "ADMIN")
+                        .map((m) => m.organisationId)
+                }
             }
-        }
-    });
+        })
+        const member = await prisma.organization.findMany({
+            where: {
+                id: {
+                    in: memberships
+                        .filter((m) => m.role === "MEMBER")
+                        .map((m) => m.organisationId)
+                }
+            }
+        })
 
-    if (!org) {
-        return res.status(404).json({ error: "Organization not found" });
+        return res.status(200).json({ admin, member });
+    } catch (error) {
+        console.error("getOrg failed:", error);
+        return res.status(500).json({ message: "Internal server error" });
     }
-    res.json(response);
 };
 
 const createOrg = async (req: Request, res: Response) => {
