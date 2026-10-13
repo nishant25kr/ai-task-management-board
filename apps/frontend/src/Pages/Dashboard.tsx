@@ -13,6 +13,9 @@ export const Dashboard = () => {
     const [name, setName] = useState<string>("")
     const [description, setDescription] = useState<string>("")
     const [username, setUsername] = useState<string>("")
+    const [invite, setInvite] = useState<boolean>(false)
+    const [inviteOrgId, setInviteOrgId] = useState<string | null>(null);
+    const [inviteResponseMessage, setInviteResponseMessage] = useState<string | null>(null)
 
     useEffect(() => {
         (
@@ -27,7 +30,7 @@ export const Dashboard = () => {
                     const userData = localStorage.getItem("user");
                     if (!userData) {
                         console.log("No user data found");
-                        navigate("/auth/login")
+                        navigate("/auth/login");
                         return;
                     }
                     const user = JSON.parse(userData)
@@ -93,27 +96,28 @@ export const Dashboard = () => {
         navigate(`/boards/${id}`)
     }
 
-    async function handleInvite(id: string){
+    async function handleInvite() {
         console.log("hello there")
         try {
             const token = localStorage.getItem("token");
-            console.log("hello1")
-            if(!token) return;
-            
-            console.log("hello2")
-            if(!id || !username) return;
-            console.log("hello3")
-            
+            if (!token) return;
+            if (!inviteOrgId || !username) return;
+//todo:fix this
             const response = await axios.post(`${API_BASE_URL}/invite`, {
                 username: username,
-                organizationId: id
+                organizationId: inviteOrgId
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
-            console.log(response.data);
+            setInviteResponseMessage(response.data.message)
+
+            setTimeout(() => {
+                setInvite(false)
+                return;
+            }, 2000);
 
         } catch (error) {
 
@@ -165,40 +169,62 @@ export const Dashboard = () => {
                         </div>
 
                         {organizations && organizations.length > 0 ? (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {organizations.map(org => (
-                                    <div key={org.id} className="rounded-lg border border-slate-200 p-4">
-                                        <h3 className="text-lg font-medium">{org.name}</h3>
-                                        <p className="mt-2 text-sm text-slate-600">{org.description}</p>
-                                        <button
-                                            onClick={() => handleJoin(org.id)}
-                                            className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
-                                        >
-                                            Open board
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="rounded border border-slate-300 px-3 py-2 text-sm font-medium"
-                                            onClick={()=>handleInvite(org.id)}
-                                        >
-                                            Invite
-                                        </button>
-                                        <input className="border" placeholder="username" onChange={(e)=> setUsername(e.target.value)} />username
-                                    </div>
-                                ))}
-                                {memberorganizations?.map(org => (
-                                    <div key={org.id} className="rounded-lg border border-slate-200 p-4">
-                                        <h3 className="text-lg font-medium">{org.name}</h3>
-                                        <p className="mt-2 text-sm text-slate-600">{org.description}</p>
-                                        <button
-                                            onClick={() => handleJoin(org.id)}
-                                            className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
-                                        >
-                                            Open board
-                                        </button>
-                                    
-                                    </div>
-                                ))}
+                            <div className="grid gap-4 md:grid-cols-3 ">
+                                {
+                                    invite ? (
+                                        <div className="border  p-2 w-full h-full">
+                                            <p>{inviteResponseMessage}</p>
+                                            <input className="border" placeholder="username" onChange={(e) => setUsername(e.target.value)} />
+                                            <button
+                                                className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                                onClick={() => handleInvite()}
+                                            >Add User</button>
+                                            <button className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                            >Cancle</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {organizations.map(org => (
+                                                <div key={org.id} className="rounded-lg border border-slate-200 p-4">
+                                                    <h3 className="text-lg font-medium">{org.name}</h3>
+                                                    <p className="mt-2 text-sm text-slate-600">{org.description}</p>
+                                                    <div>
+                                                        <button
+                                                            onClick={() => handleJoin(org.id)}
+                                                            className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                                        >
+                                                            Open board
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="rounded border border-slate-300 px-3 py-2 text-sm font-medium"
+                                                            onClick={() => {
+                                                                setInvite(true)
+                                                                setInviteOrgId(org.id)
+                                                            }
+
+                                                            }
+                                                        >
+                                                            Invite
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {memberorganizations?.map(org => (
+                                                <div key={org.id} className="rounded-lg border border-slate-200 p-4">
+                                                    <h3 className="text-lg font-medium">{org.name}</h3>
+                                                    <p className="mt-2 text-sm text-slate-600">{org.description}</p>
+                                                    <button
+                                                        onClick={() => handleJoin(org.id)}
+                                                        className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                                    >
+                                                        Open board
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )
+                                }
                             </div>
                         ) : (
                             <p className="text-slate-500">No organizations yet.</p>
