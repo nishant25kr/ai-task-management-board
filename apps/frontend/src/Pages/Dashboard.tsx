@@ -4,12 +4,13 @@ import axios from "axios";
 import { type User, type Organization } from "@/types";
 import { API_BASE_URL } from "../config";
 import { Navbar } from "../Components/Navbar";
+import { ProfileSection } from "../Components/ProfileSection";
 
 export const Dashboard = () => {
     const navigate = useNavigate();
     const [organizations, setOrganizations] = useState<Organization[] | null>(null);
     const [memberorganizations, setMemberOrganizations] = useState<Organization[] | null>(null);
-    const [user, setUser] = useState<User | null>(null)
+    const [user, setUser] = useState<User>()
     const [name, setName] = useState<string>("")
     const [description, setDescription] = useState<string>("")
     const [username, setUsername] = useState<string>("")
@@ -102,7 +103,7 @@ export const Dashboard = () => {
             const token = localStorage.getItem("token");
             if (!token) return;
             if (!inviteOrgId || !username) return;
-//todo:fix this
+            //todo:fix this
             const response = await axios.post(`${API_BASE_URL}/invite`, {
                 username: username,
                 organizationId: inviteOrgId
@@ -117,7 +118,7 @@ export const Dashboard = () => {
             setTimeout(() => {
                 setInvite(false)
                 return;
-            }, 2000);
+            }, 3000);
 
         } catch (error) {
 
@@ -129,23 +130,7 @@ export const Dashboard = () => {
             <Navbar />
 
             <main className="mx-auto grid max-w-6xl gap-6 px-6 py-6 md:grid-cols-[260px_1fr]">
-                <aside className="rounded-xl border border-slate-200 p-4">
-                    <h2 className="mb-4 text-lg font-semibold">Profile</h2>
-                    <div className="space-y-2 text-sm text-slate-600">
-                        <p>User ID: {user?.id}</p>
-                        <p>Username: {user?.username}</p>
-                    </div>
-
-                    <div className="mt-6">
-                        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Quick actions</h3>
-                        <ul className="space-y-2 text-sm">
-                            <li>Overview</li>
-                            <li>Boards</li>
-                            <li>Members</li>
-                            <li>Settings</li>
-                        </ul>
-                    </div>
-                </aside>
+                {user && <ProfileSection user={user} />}
 
                 <section className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-3">
@@ -179,7 +164,9 @@ export const Dashboard = () => {
                                                 className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
                                                 onClick={() => handleInvite()}
                                             >Add User</button>
-                                            <button className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                            <button 
+                                                className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+                                                onClick={()=> setInvite(false)}
                                             >Cancle</button>
                                         </div>
                                     ) : (
