@@ -1,6 +1,6 @@
 import router from "express";
 import { getUser, createUser, signIn, invite }  from "../controllers/userController";
-import { createOrg, getOrg } from "../controllers/orgController";
+import { createOrg, deleteOrg, getOrg } from "../controllers/orgController";
 import { createIssue, getIssue, updateIssue } from "../controllers/issueController";
 import { createSection, getSection } from "../controllers/sectionController";
 import { connectRepository, createBoard, getRepositoryBranches } from "../controllers/boardController";
@@ -11,6 +11,7 @@ const route = router.Router();
 
 route.post("/users", createUser);
 route.post("/organization", Middleware, createOrg);
+route.delete("/organization/:id", Middleware, deleteOrg);
 route.post("/issue",Middleware, createIssue)
 route.post("/section", Middleware, createSection)
 route.post("/board", Middleware, createBoard)

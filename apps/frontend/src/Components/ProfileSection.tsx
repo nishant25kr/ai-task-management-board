@@ -1,6 +1,6 @@
 import { type User } from "@/types";
 
-export const ProfileSection = ({ user }: { user: User }) => {
+export const ProfileSection = ({ user }: { user: User | null }) => {
     if(!user){
         return (
             <div>loading </div>

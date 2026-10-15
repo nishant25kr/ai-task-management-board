@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { prisma } from "@repo/db";
-import { createOrgSchema, type AuthenticatedRequest } from '../types';
+import { createOrgSchema, deleteOrgSchema, type AuthenticatedRequest } from '../types';
 
 const getOrg = async (req: Request, res: Response) => {
     const userId = (req as AuthenticatedRequest).user?.userId;
@@ -84,4 +84,61 @@ const createOrg = async (req: Request, res: Response) => {
     }
 }
 
-export { getOrg, createOrg }
+const deleteOrg = async (req: Request, res: Response) => {
+    console.log(req.params);
+    const parsedData = deleteOrgSchema.safeParse(req.params);
+
+    if (!parsedData.success) {
+        return res.status(400).json({ message: "Validation failed" });
+    }
+
+    const authReq = req as unknown as AuthenticatedRequest;
+    const userId = authReq.user?.userId;
+
+    if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+        const org = await prisma.organization.findUnique({
+            where: {
+                id: parsedData.data.id,
+            },
+        });
+
+        if (!org) {
+            return res.status(404).json({ message: "Organization not found" });
+        }
+
+        const membership = await prisma.membership.findFirst({
+            where: {
+                organisationId: parsedData.data.id,
+                userId,
+                role: "ADMIN",
+            },
+        });
+
+        if (!membership) {
+            return res.status(403).json({ message: "Forbidden" });
+        }
+
+        await prisma.membership.delete({
+            where:{
+                id: membership?.id
+            }
+        })
+        
+        await prisma.organization.delete({
+            where: {
+                id: parsedData.data.id,
+            },
+        });
+        
+        return res.status(200).json({ message: "Organization deleted successfully" });
+    } catch (error) {
+        console.error("deleteOrg failed:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export { getOrg, createOrg, deleteOrg }

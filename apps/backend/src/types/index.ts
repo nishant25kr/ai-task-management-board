@@ -61,6 +61,18 @@ const signInSchema = z.object({
         .regex(/[^A-Za-z0-9]/, { message: "Must contain at least one special character" })
 })
 
+const deleteOrgSchema = z.object({
+    id: z.string()
+})
+
+export type AuthenticatedRequest = Request & {
+    user: {
+        id?: string;
+        userId: string;
+        username: string;
+    };
+};
+
 export {
     createMembership,
     createOrgSchema,
@@ -71,13 +83,6 @@ export {
     getIssueSchema,
     updateIssueSchema,
     signInSchema,
-    inviteUserSchema
+    inviteUserSchema,
+    deleteOrgSchema
 }
-
-export type AuthenticatedRequest = Request & {
-    user: {
-        id?: string;
-        userId: string;
-        username: string;
-    };
-};
