@@ -95,6 +95,17 @@ export class User {
         return section;
     }
 
+    private async ensureBoardAdmin(organisationId: string, userId: string) {
+        //todo: fix this validation issue
+        const membership = await prisma.membership.findUnique({
+            where: {
+                userId: userId,
+                organisationId: organisationId,
+                role: "ADMIN"
+            }
+        })
+    }
+
     initHandler() {
         this.ws.on("message", async (data) => {
             try {
