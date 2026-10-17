@@ -38,6 +38,7 @@ const CreateBoardSchema = z.object({
 const DeleteSectionSchema = z.object({
     sectionId: z.string().trim().min(1).max(128),
     boardId: z.string().trim().min(1).max(128),
+    organizationId: z.string().trim().min(1).max(128)
 }).passthrough()
 
 const MoveTaskSchema = z.object({

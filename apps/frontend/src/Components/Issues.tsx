@@ -6,6 +6,8 @@ import { ConnectRepository } from "./ConnectRepository";
 import { AgentRunButton } from "./AgentRunButton";
 import { Navbar } from "./Navbar";
 import { WS_URL } from "../config";
+import { BoardInfo } from "./BoardInfo";
+import { SectionInfo } from "./SectionsInfo";
 
 export const Issue = () => {
   const params = useParams();
@@ -14,18 +16,19 @@ export const Issue = () => {
   const [user, setUser] = useState<User>()
   const [boardId, setBoardId] = useState<string>('');
   const [task, setTask] = useState<Task[]>([]);
-  const [users, setUsers] = useState<unknown[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true);
   const [changingBoard, setChangingBoard] = useState<boolean>(false);
-  const [newtask, setNewtask] = useState<string>('')
+  // const [newtask, setNewtask] = useState<string>('')
   const [description, setDescription] = useState<string>();
   const [organizationId, setOrganizationId] = useState<string>(params.organizationId || '')
   const [repository, setRepository] = useState<any | null>(null);
+  const [deleteSectionLoading, setDeleteSectionLoading] = useState<boolean>(false);
 
-  function addtask(sectionId: string) {
+  function addtask(sectionId: string, newtask : string,description : string) {
     if (!newtask.trim() || !wsRef.current || !description?.trim()) {
       alert("validation failed")
       return;
@@ -118,11 +121,13 @@ export const Issue = () => {
         type: "delete-section",
         payload: {
           sectionId: id,
-          boardId: boardId
+          boardId: boardId,
+          organizationId: organizationId
         }
       })
     )
-    setSections(prev => prev.filter(section => section.id !== id))
+    setDeleteSectionLoading(true)
+    // setSections(prev => prev.filter(section => section.id !== id))
   }
 
   function changeBoard(id: string) {
@@ -159,7 +164,7 @@ export const Issue = () => {
           })
         )
       }
-      setTask(issue => issue.find(i => i.id ===id ) ? (issue.filter(i => i.id !== id)) : (issue))
+      setTask(issue => issue.find(i => i.id === id) ? (issue.filter(i => i.id !== id)) : (issue))
     } catch (error) {
       console.error(error)
     }
@@ -236,7 +241,7 @@ export const Issue = () => {
           break;
 
         case 'update-issue':
-          console.log("message",msg)
+          console.log("message", msg)
           const issueId = msg.payload.issueId;
           const updatedSection = msg.payload.updatedSection;
           setTask(prev => prev.map(item =>
@@ -259,6 +264,13 @@ export const Issue = () => {
           setUsers(prev => prev.filter((user: any) => user.id !== userIdToRemove));
           break;
 
+        case 'delete-section-success': {
+          const sectionId = msg.payload.sectionId;
+          setSections(prev => prev.filter(section => section.id !== sectionId));
+          setDeleteSectionLoading(false)
+          break;
+        }
+
         case 'create-task-success':
           console.log("create-task-success", msg)
           const temporaryId = msg.payload.temporaryId;
@@ -269,8 +281,10 @@ export const Issue = () => {
           break;
 
         case "error":
+          alert(JSON.stringify(msg.payload.message));
           console.error("WebSocket error:", msg.payload);
           break;
+
         default:
           console.log(msg)
           break;
@@ -288,155 +302,35 @@ export const Issue = () => {
       <Navbar />
 
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">Workspace</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Board</h1>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <CreateBoard onBoardCreated={handleBoardCreated} />
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <label htmlFor="board" className="sr-only">Choose board</label>
-              <select
-                id="board"
-                name="board"
-                onChange={(e) => changeBoard(e.target.value)}
-                value={boardId}
-                className="bg-transparent text-sm font-medium text-slate-700 outline-none"
-              >
-                {boards.map((item) => (
-                  <option key={item.id} value={item.id}>{item.title}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
+        <BoardInfo
+          handleBoardCreated={handleBoardCreated}
+          changeBoard={changeBoard}
+          boardId={boardId}
+          boards={boards}
+          users = {users}
+        />
 
         {loading ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Loading board...</div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Current board</p>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {boards.find((board) => board.id === boardId)?.title || "Board"}
-                  </h2>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {(users as Array<{ id: string; username: string }>).map((member) => (
-                    <span
-                      key={member.id}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
-                    >
-                      {member.username}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {boardId && <ConnectRepository boardId={boardId} repo={repository} />}
 
             {changingBoard ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Changing board...</div>
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2">
-                {sections.map((section) => (
-                  <div
-                    key={section.id}
-                    className="w-[310px] shrink-0 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-sm"
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">{section.title}</h3>
-                      <button
-                        type="button"
-                        className="rounded border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-600"
-                        onClick={() => deleteSection(section.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {task
-                        .filter((issue) => issue.sectionId === section.id)
-                        .map((issue) => {
-                          const sectionIndex = sections.findIndex((item) => item.id === section.id);
-
-                          return (
-                            <div key={issue.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                              <div className="flex justify-end px-2 pt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => deleteIssue(issue.id)}
-                                  className="rounded border border-slate-300 px-2 py-1 text-[10px] font-medium text-slate-600"
-                                >
-                                  X
-                                </button>
-                              </div>
-
-                              <div className="flex items-stretch gap-1 px-2 pb-2">
-                                <button
-                                  type="button"
-                                  className="w-8 rounded border border-slate-200 bg-slate-50 text-sm text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  onClick={() => moveBackward(issue.id)}
-                                  disabled={sectionIndex <= 0}
-                                  aria-label={`Move ${issue.title} to the previous section`}
-                                  title="Move to previous section"
-                                >
-                                  ←
-                                </button>
-
-                                <div className="min-w-0 flex-1 rounded-md bg-slate-50 p-2">
-                                  <p className="break-words text-sm font-medium text-slate-700">{issue.title}</p>
-                                  <div className="mt-2">
-                                    <AgentRunButton issueId={issue.id} />
-                                  </div>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="w-8 rounded border border-slate-200 bg-slate-50 text-sm text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  onClick={() => moveForward(issue.id)}
-                                  disabled={sectionIndex >= sections.length - 1}
-                                  aria-label={`Move ${issue.title} to the next section`}
-                                  title="Move to next section"
-                                >
-                                  →
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-
-                    <div className="mt-4 space-y-2 rounded-lg border border-dashed border-slate-300 bg-white p-2">
-                      <input
-                        type="text"
-                        className="w-full rounded border border-slate-300 px-2 py-2 text-sm outline-none focus:border-slate-400"
-                        onChange={(e) => setNewtask(e.target.value)}
-                        placeholder="Add task"
-                      />
-                      <input
-                        type="text"
-                        className="w-full rounded border border-slate-300 px-2 py-2 text-sm outline-none focus:border-slate-400"
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Description"
-                      />
-                      <button
-                        type="button"
-                        className="w-full rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-                        onClick={() => addtask(section.id)}
-                      >
-                        Create task
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                //todo : make changes to make it work
+                <SectionInfo 
+                  sections = {sections} 
+                  deleteSectionLoading = {deleteSectionLoading}
+                  deleteSection = {deleteSection}
+                  task = {task}
+                  moveBackward = {moveBackward}
+                  moveForward = {moveForward}
+                  addtask={addtask}
+                />  
 
                 <div className="w-[310px] shrink-0 rounded-xl border border-dashed border-slate-300 bg-white p-3 shadow-sm">
                   <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">Add section</h3>

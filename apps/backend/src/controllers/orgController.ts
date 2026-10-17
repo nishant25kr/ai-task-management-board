@@ -141,4 +141,8 @@ const deleteOrg = async (req: Request, res: Response) => {
     }
 };
 
-export { getOrg, createOrg, deleteOrg }
+export { 
+    getOrg, 
+    createOrg, 
+    deleteOrg 
+}

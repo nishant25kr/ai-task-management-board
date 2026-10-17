@@ -96,14 +96,18 @@ export class User {
     }
 
     private async ensureBoardAdmin(organisationId: string, userId: string) {
-        //todo: fix this validation issue
-        const membership = await prisma.membership.findUnique({
+        const membership = await prisma.membership.findFirst({
             where: {
                 userId: userId,
                 organisationId: organisationId,
                 role: "ADMIN"
             }
         })
+        console.log("memshiop",membership)
+        if(!membership){
+            throw new Error("Not authorized for this request");
+            return;
+        }
     }
 
     initHandler() {
@@ -121,7 +125,6 @@ export class User {
                         const token = parsedData.payload.token;
                         const organizationId = parsedData.payload.organizationId;
                         const requestedBoardId = parsedData.payload.boardId;
-
                         let user;
                         try {
                             user = jwt.verify(token, jwtSecret as string);
@@ -397,10 +400,11 @@ export class User {
                             return;
                         }
 
-                        const { sectionId, boardId } = parsedData.payload;
+                        const { sectionId, boardId, organizationId } = parsedData.payload;
                         await this.ensureBoardMembership(this.id, boardId);
                         await this.ensureSectionInBoard(sectionId, boardId);
-
+                        await this.ensureBoardAdmin(organizationId, this.id);
+                        // console.log("hello after ther ensure admin");
                         try {
                             await prisma.section.delete({
                                 where: { id: sectionId },
@@ -409,6 +413,15 @@ export class User {
                             this.sendError(error.message || "Failed to delete section");
                             return;
                         }
+
+                        this.ws.send(
+                            JSON.stringify({
+                                type: "delete-section-success",
+                                payload:{
+                                    sectionId: sectionId
+                                }
+                            })
+                        )
 
                         UserManager.getInstance().broadcast(
                             boardId,
@@ -512,6 +525,7 @@ export class User {
 
                         const { title, organizationId } = parsedData.payload;
                         const membership = await this.ensureOrganizationMembership(this.id, organizationId);
+                        
                         if (membership.role !== "ADMIN") {
                             this.sendError("Forbidden");
                             return;
