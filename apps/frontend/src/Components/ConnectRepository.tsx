@@ -18,7 +18,7 @@ type ConnectRepositoryProps = {
         owner: string;
         name: string;
         defaultBranch: string;
-    };
+    } | null;
 };
 
 const GithubIcon = ({ className = "h-5 w-5" }: { className?: string }) => (

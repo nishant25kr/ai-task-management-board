@@ -26,6 +26,7 @@ const CreateTaskSchema = z.object({
 }).passthrough()
 
 const CreateSectionSchema = z.object({
+    requestId: z.string().trim().min(1).max(128),
     title: z.string().trim().min(1).max(100),
     boardId: z.string().trim().min(1).max(128),
 }).passthrough()
@@ -36,6 +37,7 @@ const CreateBoardSchema = z.object({
 }).passthrough()
 
 const DeleteSectionSchema = z.object({
+    requestId: z.string().trim().min(1).max(128),
     sectionId: z.string().trim().min(1).max(128),
     boardId: z.string().trim().min(1).max(128),
     organizationId: z.string().trim().min(1).max(128)

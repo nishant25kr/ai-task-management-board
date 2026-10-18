@@ -27,11 +27,11 @@ export class User {
         this.initHandler();
     }
 
-    private sendError(message: string) {
+    private sendError(message: string, requestId?: string) {
         this.ws.send(
             JSON.stringify({
                 type: "error",
-                payload: { message },
+                payload: { message, requestId },
             })
         );
     }
@@ -112,8 +112,12 @@ export class User {
 
     initHandler() {
         this.ws.on("message", async (data) => {
+            let requestId: string | undefined;
             try {
                 const parsedData = JSON.parse(data.toString());
+                requestId = typeof parsedData.payload?.requestId === "string"
+                    ? parsedData.payload.requestId
+                    : undefined;
                 switch (parsedData.type) {
                     case "join": {
                         const isValid = JoinRoomSchema.safeParse(parsedData.payload);
@@ -354,16 +358,16 @@ export class User {
                     case "add-section": {
                         const isValid = CreateSectionSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for add-section");
+                            this.sendError("Invalid payload for add-section", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { title, boardId } = parsedData.payload;
+                        const { title, boardId } = isValid.data;
                         await this.ensureBoardMembership(this.id, boardId);
 
                         const createdSection = await prisma.section.create({
@@ -374,6 +378,16 @@ export class User {
                             },
                         });
 
+                        this.ws.send(
+                            JSON.stringify({
+                                type: "create-section-success",
+                                payload: {
+                                    requestId,
+                                    section: createdSection,
+                                    boardId,
+                                },
+                            })
+                        );
                         UserManager.getInstance().broadcast(
                             boardId,
                             this,
@@ -391,16 +405,16 @@ export class User {
                     case "delete-section": {
                         const isValid = DeleteSectionSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for delete-section");
+                            this.sendError("Invalid payload for delete-section", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { sectionId, boardId, organizationId } = parsedData.payload;
+                        const { sectionId, boardId, organizationId } = isValid.data;
                         await this.ensureBoardMembership(this.id, boardId);
                         await this.ensureSectionInBoard(sectionId, boardId);
                         await this.ensureBoardAdmin(organizationId, this.id);
@@ -410,16 +424,14 @@ export class User {
                                 where: { id: sectionId },
                             });
                         } catch (error: any) {
-                            this.sendError(error.message || "Failed to delete section");
+                            this.sendError(error.message || "Failed to delete section", requestId);
                             return;
                         }
 
                         this.ws.send(
                             JSON.stringify({
                                 type: "delete-section-success",
-                                payload:{
-                                    sectionId: sectionId
-                                }
+                                payload: { sectionId, requestId }
                             })
                         )
 
@@ -556,7 +568,7 @@ export class User {
                         this.sendError(`Unknown message type: ${parsedData.type ?? "undefined"}`);
                 }
             } catch (error: any) {
-                this.sendError(error.message || "Unexpected error");
+                this.sendError(error.message || "Unexpected error", requestId);
             }
         });
 

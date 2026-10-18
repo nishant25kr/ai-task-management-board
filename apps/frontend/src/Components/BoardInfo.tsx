@@ -48,7 +48,7 @@ export const BoardInfo = (
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        {(users as Array<{ id: string; username: string }>).map((member) => (
+                        {users.map((member) => (
                             <span
                                 key={member.id}
                                 className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"

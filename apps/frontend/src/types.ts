@@ -15,6 +15,14 @@ export interface Board {
   title: string;
 }
 
+export interface Repository {
+  id: string;
+  githubId: string;
+  owner: string;
+  name: string;
+  defaultBranch: string;
+}
+
 export interface User {
   id: string,
   username: string

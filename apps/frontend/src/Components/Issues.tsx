@@ -1,9 +1,7 @@
-import type { User, Task, Section, Board } from "@/types";
+import type { User, Task, Section, Board, Repository } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom"
-import { CreateBoard } from "./CreateBoard";
 import { ConnectRepository } from "./ConnectRepository";
-import { AgentRunButton } from "./AgentRunButton";
 import { Navbar } from "./Navbar";
 import { WS_URL } from "../config";
 import { BoardInfo } from "./BoardInfo";
@@ -13,28 +11,36 @@ export const Issue = () => {
   const params = useParams();
   const navigate = useNavigate();
   const wsRef = useRef<WebSocket | null>(null);
+  const pendingSectionDeletesRef = useRef<Record<string, string>>({});
+  const pendingSectionCreateRequestRef = useRef<string | null>(null);
   const [user, setUser] = useState<User>()
   const [boardId, setBoardId] = useState<string>('');
   const [task, setTask] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
-  const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true);
   const [changingBoard, setChangingBoard] = useState<boolean>(false);
-  // const [newtask, setNewtask] = useState<string>('')
-  const [description, setDescription] = useState<string>();
-  const [organizationId, setOrganizationId] = useState<string>(params.organizationId || '')
-  const [repository, setRepository] = useState<any | null>(null);
-  const [deleteSectionLoading, setDeleteSectionLoading] = useState<boolean>(false);
+  const [repository, setRepository] = useState<Repository | null>(null);
+  const [deletingSections, setDeletingSections] = useState<Record<string, string>>({});
+  const [sectionDeleteErrors, setSectionDeleteErrors] = useState<Record<string, string>>({});
+  const [sectionCreateResult, setSectionCreateResult] = useState<{
+    requestId: string;
+    section: Section;
+  } | null>(null);
+  const [sectionCreateError, setSectionCreateError] = useState<{
+    requestId: string;
+    message: string;
+  } | null>(null);
 
-  function addtask(sectionId: string, newtask : string,description : string) {
-    if (!newtask.trim() || !wsRef.current || !description?.trim()) {
+  function addtask(sectionId: string, newtask: string, description: string): boolean {
+    if (!newtask.trim() || !description.trim()) {
       alert("validation failed")
-      return;
+      return false;
     }
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return false;
     const temporiryId = crypto.randomUUID();
-    wsRef.current?.send(
+    wsRef.current.send(
       JSON.stringify({
         type: 'create-task',
         payload: {
@@ -48,6 +54,7 @@ export const Issue = () => {
       })
     )
     setTask(prev => [...prev, { id: temporiryId, title: newtask, sectionId: sectionId }])
+    return true;
   }
 
   function moveForward(id: string) {
@@ -100,34 +107,50 @@ export const Issue = () => {
     )
   }
 
-  function addSection() {
-    if (!title.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+  function addSection(title: string, requestId: string): boolean {
+    if (!title.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return false;
+    pendingSectionCreateRequestRef.current = requestId;
+    setSectionCreateError(null);
     wsRef.current?.send(
       JSON.stringify({
         type: "add-section",
         payload: {
+          requestId,
           title: title.trim(),
           boardId: boardId
         }
       })
     )
-    setSections(prev => [...prev, { id: crypto.randomUUID(), title: title.trim() }])
-    setTitle('');
+    return true;
   }
 
-  function deleteSection(id: string) {
-    if (wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(
+  function deleteSection(sectionId: string, requestId: string): boolean {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      setSectionDeleteErrors(prev => ({
+        ...prev,
+        [sectionId]: "The board connection is not ready. Try again."
+      }));
+      return false;
+    }
+    setSectionDeleteErrors(prev => {
+      const errors = { ...prev };
+      delete errors[sectionId];
+      return errors;
+    });
+    setDeletingSections(prev => ({ ...prev, [sectionId]: requestId }));
+    pendingSectionDeletesRef.current[sectionId] = requestId;
+    wsRef.current.send(
       JSON.stringify({
         type: "delete-section",
         payload: {
-          sectionId: id,
+          requestId,
+          sectionId,
           boardId: boardId,
-          organizationId: organizationId
+          organizationId: params.organizationId
         }
       })
     )
-    setDeleteSectionLoading(true)
-    // setSections(prev => prev.filter(section => section.id !== id))
+    return true;
   }
 
   function changeBoard(id: string) {
@@ -202,7 +225,7 @@ export const Issue = () => {
           setUsers(msg.payload.users ?? []);
           setSections(msg.payload.sections ?? []);
           setBoards(msg.payload.boards ?? []);
-          setRepository(msg.payload.repository ?? {});
+          setRepository(msg.payload.repository ?? null);
           setLoading(false);
           setChangingBoard(false);
           setBoardId(msg.payload.boardId ?? '');
@@ -217,15 +240,26 @@ export const Issue = () => {
           break;
 
         case 'create-section':
-          console.log('recieved create section message');
           const section = msg.payload?.section;
-          console.log("section", section);
           if (!section) {
             console.warn("create-section: missing payload.section", msg);
             break;
           }
-          setSections(prev => [...prev, section]);
+          setSections(prev => prev.some(item => item.id === section.id) ? prev : [...prev, section]);
           break;
+
+        case 'create-section-success': {
+          const section = msg.payload?.section as Section | undefined;
+          const requestId = msg.payload?.requestId as string | undefined;
+          if (!section || !requestId) {
+            console.warn("create-section-success: missing section or requestId", msg);
+            break;
+          }
+          pendingSectionCreateRequestRef.current = null;
+          setSections(prev => prev.some(item => item.id === section.id) ? prev : [...prev, section]);
+          setSectionCreateResult({ requestId, section });
+          break;
+        }
 
         case 'create-task':
           console.log("inside create task", msg)
@@ -261,13 +295,29 @@ export const Issue = () => {
 
         case 'user-left':
           const userIdToRemove = msg.payload.id;
-          setUsers(prev => prev.filter((user: any) => user.id !== userIdToRemove));
+          setUsers(prev => prev.filter(user => user.id !== userIdToRemove));
           break;
 
         case 'delete-section-success': {
           const sectionId = msg.payload.sectionId;
+          delete pendingSectionDeletesRef.current[sectionId];
           setSections(prev => prev.filter(section => section.id !== sectionId));
-          setDeleteSectionLoading(false)
+          setDeletingSections(prev => {
+            const next = { ...prev };
+            delete next[sectionId];
+            return next;
+          });
+          setSectionDeleteErrors(prev => {
+            const next = { ...prev };
+            delete next[sectionId];
+            return next;
+          });
+          break;
+        }
+
+        case 'delete-section': {
+          const sectionId = msg.payload.sectionId;
+          setSections(prev => prev.filter(section => section.id !== sectionId));
           break;
         }
 
@@ -280,10 +330,29 @@ export const Issue = () => {
           ));
           break;
 
-        case "error":
-          alert(JSON.stringify(msg.payload.message));
+        case "error": {
+          const requestId = msg.payload?.requestId as string | undefined;
+          const message = String(msg.payload?.message ?? "WebSocket request failed");
+          if (requestId && pendingSectionCreateRequestRef.current === requestId) {
+            pendingSectionCreateRequestRef.current = null;
+            setSectionCreateError({ requestId, message });
+          } else if (requestId && Object.entries(pendingSectionDeletesRef.current).some(([, id]) => id === requestId)) {
+            const sectionId = Object.entries(pendingSectionDeletesRef.current).find(([, id]) => id === requestId)?.[0];
+            if (sectionId) {
+              delete pendingSectionDeletesRef.current[sectionId];
+              setDeletingSections(prev => {
+                const next = { ...prev };
+                delete next[sectionId];
+                return next;
+              });
+              setSectionDeleteErrors(prev => ({ ...prev, [sectionId]: message }));
+            }
+          } else {
+            alert(message);
+          }
           console.error("WebSocket error:", msg.payload);
           break;
+        }
 
         default:
           console.log(msg)
@@ -300,15 +369,13 @@ export const Issue = () => {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
       <Navbar />
-
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-
         <BoardInfo
           handleBoardCreated={handleBoardCreated}
           changeBoard={changeBoard}
           boardId={boardId}
           boards={boards}
-          users = {users}
+          users={users}
         />
 
         {loading ? (
@@ -320,36 +387,20 @@ export const Issue = () => {
             {changingBoard ? (
               <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Changing board...</div>
             ) : (
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                //todo : make changes to make it work
-                <SectionInfo 
-                  sections = {sections} 
-                  deleteSectionLoading = {deleteSectionLoading}
-                  deleteSection = {deleteSection}
-                  task = {task}
-                  moveBackward = {moveBackward}
-                  moveForward = {moveForward}
-                  addtask={addtask}
-                />  
-
-                <div className="w-[310px] shrink-0 rounded-xl border border-dashed border-slate-300 bg-white p-3 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">Add section</h3>
-                  <input
-                    type="text"
-                    value={title}
-                    placeholder="Section name"
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="mb-3 w-full rounded border border-slate-300 px-2 py-2 text-sm outline-none focus:border-slate-400"
-                  />
-                  <button
-                    type="button"
-                    className="w-full rounded bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-                    onClick={addSection}
-                  >
-                    Add Section
-                  </button>
-                </div>
-              </div>
+              <SectionInfo
+                sections={sections}
+                tasks={task}
+                deletingSections={deletingSections}
+                sectionDeleteErrors={sectionDeleteErrors}
+                sectionCreateResult={sectionCreateResult}
+                sectionCreateError={sectionCreateError}
+                onDeleteSection={deleteSection}
+                onDeleteTask={deleteIssue}
+                onMoveBackward={moveBackward}
+                onMoveForward={moveForward}
+                onAddTask={addtask}
+                onAddSection={addSection}
+              />
             )}
           </div>
         )}
