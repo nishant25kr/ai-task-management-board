@@ -93,7 +93,7 @@ export const SectionInfo = ({
             ))}
 
             <form
-                className="w-[310px] shrink-0 rounded-xl border border-dashed border-slate-300 bg-white p-3 shadow-sm"
+                className="w-77.5 shrink-0 rounded-xl border border-dashed border-slate-300 bg-white p-3 shadow-sm"
                 onSubmit={handleAddSection}
             >
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-700">

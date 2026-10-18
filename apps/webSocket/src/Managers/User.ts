@@ -212,16 +212,16 @@ export class User {
                     case "change-board": {
                         const isValid = ChangeBoardSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for change-board");
+                            this.sendError("Invalid payload for change-board", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { newBoardId, currentBoardId } = parsedData.payload;
+                        const { newBoardId, currentBoardId } = isValid.data;
                         await this.ensureBoardMembership(this.id, newBoardId);
 
                         if (currentBoardId && currentBoardId !== newBoardId) {
@@ -255,6 +255,7 @@ export class User {
                                     repository: repo ?? null,
                                     boardId: newBoardId,
                                     users: UserManager.getInstance().getUsers(newBoardId),
+                                    requestId,
                                 },
                             })
                         );
@@ -265,16 +266,16 @@ export class User {
                         console.log("create-task", parsedData.payload);
                         const isValid = CreateTaskSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for create-task");
+                            this.sendError("Invalid payload for create-task", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { title, description, boardId, sectionId } = parsedData.payload;
+                        const { title, description, boardId, sectionId, temporaryId } = isValid.data;
 
                         let newIssue;
                         try {
@@ -289,7 +290,7 @@ export class User {
                             });
 
                         } catch (error: any) {
-                            this.sendError(error.message)
+                            this.sendError(error.message, requestId)
                             return;
                         }
 
@@ -303,6 +304,7 @@ export class User {
                                     id: newIssue.id,
                                     title: newIssue.title,
                                     sectionId: newIssue.sectionId,
+                                    boardId,
                                 },
                             })
                         );
@@ -310,9 +312,10 @@ export class User {
                             JSON.stringify({
                                 type: "create-task-success",
                                 payload: {
-                                    temporaryId: parsedData.payload.temporaryId,
+                                    temporaryId,
                                     permanentId: newIssue.id,
-
+                                    requestId,
+                                    boardId,
                                 }
                             })
                         )
@@ -349,7 +352,7 @@ export class User {
                             this,
                             JSON.stringify({
                                 type: "update-issue",
-                                payload: { issueId, updatedSection },
+                                payload: { issueId, updatedSection, boardId },
                             })
                         );
                         break;
@@ -431,7 +434,7 @@ export class User {
                         this.ws.send(
                             JSON.stringify({
                                 type: "delete-section-success",
-                                payload: { sectionId, requestId }
+                                payload: { sectionId, requestId, boardId }
                             })
                         )
 
@@ -449,16 +452,16 @@ export class User {
                     case "move-task": {
                         const isValid = MoveTaskSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for move-task");
+                            this.sendError("Invalid payload for move-task", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { issueId, updatedSection, boardId } = parsedData.payload;
+                        const { issueId, updatedSection, boardId } = isValid.data;
                         await this.ensureBoardMembership(this.id, boardId);
                         await this.ensureIssueInBoard(issueId, boardId);
                         await this.ensureSectionInBoard(updatedSection, boardId);
@@ -469,7 +472,7 @@ export class User {
                                 data: { sectionId: updatedSection },
                             });
                         } catch (error: any) {
-                            this.sendError(error.message || "Failed to move task");
+                            this.sendError(error.message || "Failed to move task", requestId);
                             return;
                         }
 
@@ -479,25 +482,29 @@ export class User {
                             this,
                             JSON.stringify({
                                 type: "update-issue",
-                                payload: { issueId, updatedSection },
+                                payload: { issueId, updatedSection, boardId },
                             })
                         );
+                        this.ws.send(JSON.stringify({
+                            type: "move-task-success",
+                            payload: { requestId, issueId, updatedSection, boardId },
+                        }));
                         break;
                     }
 
                     case "delete-task": {
                         const isValid = DeleteTaskSchema.safeParse(parsedData.payload);
                         if (!isValid.success) {
-                            this.sendError("Invalid payload for delete-task");
+                            this.sendError("Invalid payload for delete-task", requestId);
                             return;
                         }
 
                         if (!this.id) {
-                            this.sendError("Unauthorized");
+                            this.sendError("Unauthorized", requestId);
                             return;
                         }
 
-                        const { issueId, boardId } = parsedData.payload;
+                        const { issueId, boardId } = isValid.data;
                         await this.ensureBoardMembership(this.id, boardId);
                         await this.ensureIssueInBoard(issueId, boardId);
 
@@ -506,7 +513,7 @@ export class User {
                                 where: { id: issueId },
                             });
                         } catch (error: any) {
-                            this.sendError(error.message || "Failed to delete task");
+                            this.sendError(error.message || "Failed to delete task", requestId);
                             return;
                         }
 
@@ -516,9 +523,13 @@ export class User {
                             this,
                             JSON.stringify({
                                 type: "delete-issue",
-                                payload: { issueId },
+                                payload: { issueId, boardId },
                             })
                         );
+                        this.ws.send(JSON.stringify({
+                            type: "delete-task-success",
+                            payload: { requestId, issueId, boardId },
+                        }));
                         break;
                     }
 
