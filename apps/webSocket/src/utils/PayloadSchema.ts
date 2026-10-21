@@ -23,6 +23,7 @@ const CreateTaskSchema = z.object({
     createdBy: z.string().trim().min(1).max(128).optional(),
     description: z.string().trim().max(2000).default(""),
     sectionId: z.string().trim().min(1).max(128),
+    token: z.string(),
 }).passthrough()
 
 const CreateSectionSchema = z.object({

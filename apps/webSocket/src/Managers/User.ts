@@ -4,6 +4,7 @@ import { prisma } from "@repo/db";
 import { UserManager } from "./UserManager";
 import { IssueManager } from "./IssueManager";
 import { jwtSecret } from "../../config.ts";
+import axios from "axios"
 import {
     ChangeBoardSchema,
     CreateBoardSchema,
@@ -14,6 +15,7 @@ import {
     JoinRoomSchema,
     MoveTaskSchema,
 } from "../utils/PayloadSchema.ts";
+import { API_BASE_URL } from "../config.ts";
 
 export class User {
     public id!: string;
@@ -103,8 +105,8 @@ export class User {
                 role: "ADMIN"
             }
         })
-        console.log("memshiop",membership)
-        if(!membership){
+        console.log("memshiop", membership)
+        if (!membership) {
             throw new Error("Not authorized for this request");
             return;
         }
@@ -274,18 +276,30 @@ export class User {
                             return;
                         }
 
-                        const { title, description, boardId, sectionId } = parsedData.payload;
+                        const { title, description, boardId, sectionId, token } = parsedData.payload;
 
                         let newIssue;
                         try {
-                            newIssue = await prisma.issue.create({
-                                data: {
-                                    title,
+                            //todo:fix this issue 
+                            // newIssue = await prisma.issue.create({
+                            //     data: {
+                            //         title,
+                            //         description,
+                            //         boardId,
+                            //         sectionId,
+                            //         createdBy: this.id,
+                            //     },
+                            // });
+                            await axios.post(`${API_BASE_URL}/issue`, {
+                                title,
                                     description,
                                     boardId,
                                     sectionId,
                                     createdBy: this.id,
-                                },
+                            }, {
+                                headers: {
+                                    Authorization: `Bearer ${token}`
+                                }
                             });
 
                         } catch (error: any) {
@@ -537,7 +551,7 @@ export class User {
 
                         const { title, organizationId } = parsedData.payload;
                         const membership = await this.ensureOrganizationMembership(this.id, organizationId);
-                        
+
                         if (membership.role !== "ADMIN") {
                             this.sendError("Forbidden");
                             return;

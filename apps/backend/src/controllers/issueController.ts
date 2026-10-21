@@ -16,6 +16,12 @@ const createIssue = async (req: Request, res: Response) => {
     }
 
     try {
+        const isMemberOfOrg = await prisma.membership.findFirst({
+            where:{
+                userId: authReq.user.userId,
+                organisationId: parsedData.data.
+            }
+        })
         const issue = await prisma.issue.create({
             data: {
                 title: parsedData.data.title,

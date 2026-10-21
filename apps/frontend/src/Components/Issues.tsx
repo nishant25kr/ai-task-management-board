@@ -38,6 +38,7 @@ export const Issue = () => {
       alert("validation failed")
       return false;
     }
+    const token = localStorage.getItem("token");
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return false;
     const temporiryId = crypto.randomUUID();
     wsRef.current.send(
@@ -49,7 +50,8 @@ export const Issue = () => {
           boardId: boardId,
           createdBy: user?.id,
           description: description,
-          sectionId: sectionId
+          sectionId: sectionId,
+          token: token
         }
       })
     )
