@@ -280,28 +280,15 @@ export class User {
 
                         let newIssue;
                         try {
-                            //todo:fix this issue 
-                            // newIssue = await prisma.issue.create({
-                            //     data: {
-                            //         title,
-                            //         description,
-                            //         boardId,
-                            //         sectionId,
-                            //         createdBy: this.id,
-                            //     },
-                            // });
-                            await axios.post(`${API_BASE_URL}/issue`, {
-                                title,
+                            newIssue = await prisma.issue.create({
+                                data: {
+                                    title,
                                     description,
                                     boardId,
                                     sectionId,
                                     createdBy: this.id,
-                            }, {
-                                headers: {
-                                    Authorization: `Bearer ${token}`
-                                }
+                                },
                             });
-
                         } catch (error: any) {
                             this.sendError(error.message)
                             return;
