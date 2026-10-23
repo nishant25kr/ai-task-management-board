@@ -16,6 +16,7 @@ import {
     MoveTaskSchema,
 } from "../utils/PayloadSchema.ts";
 import { API_BASE_URL } from "../config.ts";
+import { Prisma } from "packages/db/generated/prisma/client.ts";
 
 export class User {
     public id!: string;
@@ -417,15 +418,35 @@ export class User {
 
                         const { sectionId, boardId, organizationId } = isValid.data;
                         await this.ensureBoardMembership(this.id, boardId);
-                        await this.ensureSectionInBoard(sectionId, boardId);
-                        await this.ensureBoardAdmin(organizationId, this.id);
-                        // console.log("hello after ther ensure admin");
+
                         try {
                             await prisma.section.delete({
                                 where: { id: sectionId },
                             });
-                        } catch (error: any) {
-                            this.sendError(error.message || "Failed to delete section", requestId);
+                        } catch (error) {
+                            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                                switch (error.code) {
+                                    case "P2025":
+                                        this.sendError("Section not found", requestId);
+                                        return;
+                                    case "P2003":
+                                    case "P2014":
+                                        this.sendError(
+                                            "Cannot delete section because other items depend on it",
+                                            requestId
+                                        );
+                                        return;
+                                    default:
+                                        break;
+                                }
+                            }
+
+                            if (error instanceof Prisma.PrismaClientValidationError) {
+                                this.sendError("Invalid section ID", requestId);
+                                return;
+                            }
+
+                            this.sendError("Failed to delete section", requestId);
                             return;
                         }
 
@@ -518,48 +539,6 @@ export class User {
                             JSON.stringify({
                                 type: "delete-issue",
                                 payload: { issueId },
-                            })
-                        );
-                        break;
-                    }
-
-                    case "create-board": {
-                        //todo: validate the req is made by admin
-                        const isValid = CreateBoardSchema.safeParse(parsedData.payload);
-                        if (!isValid.success) {
-                            this.sendError("Invalid payload for create-board");
-                            return;
-                        }
-
-                        if (!this.id) {
-                            this.sendError("Unauthorized");
-                            return;
-                        }
-
-                        const { title, organizationId } = parsedData.payload;
-                        const membership = await this.ensureOrganizationMembership(this.id, organizationId);
-
-                        if (membership.role !== "ADMIN") {
-                            this.sendError("Forbidden");
-                            return;
-                        }
-
-                        const createdBoard = await prisma.board.create({
-                            data: {
-                                title,
-                                organisationId: organizationId,
-                            },
-                        });
-
-                        UserManager.getInstance().broadcast(
-                            organizationId,
-                            this,
-                            JSON.stringify({
-                                type: "create-board",
-                                payload: {
-                                    board: createdBoard,
-                                    organizationId,
-                                },
                             })
                         );
                         break;
