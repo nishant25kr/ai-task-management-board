@@ -10,11 +10,11 @@ export const RenderOrganizations =
         memberorganizations,
         deleteOrg
     }:
-        {
-            organizations: Organization[] | null,
-            memberorganizations: Organization[] | null,
-            deleteOrg: (id: string) => void
-        }) => {
+    {
+        organizations: Organization[] | null,
+        memberorganizations: Organization[] | null,
+        deleteOrg: (id: string) => void
+    }) => {
 
         const navigate = useNavigate();
         const [username, setUsername] = useState<string>("")
@@ -88,9 +88,9 @@ export const RenderOrganizations =
                 ) : (
                     <div className="grid gap-4 md:grid-cols-3 ">
                         {invite ? (
-                            <div className="border  p-2 w-full h-full">
+                            <div className="rounded-lg border border-slate-300 p-4">
                                 <p>{inviteResponseMessage}</p>
-                                <input className="border" placeholder="username" onChange={(e) => setUsername(e.target.value)} />
+                                <input className="rounded border  border-slate-300" placeholder="username" onChange={(e) => setUsername(e.target.value)} />
                                 <button
                                     className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
                                     onClick={() => handleInvite()}

@@ -416,14 +416,19 @@ export class User {
                             return;
                         }
 
-                        const { sectionId, boardId, organizationId } = isValid.data;
-                        await this.ensureBoardMembership(this.id, boardId);
+                        const { sectionId, boardId } = isValid.data;
 
                         try {
+                            await prisma.issue.deleteMany({
+                                where:{
+                                    sectionId: sectionId
+                                }
+                            })
                             await prisma.section.delete({
                                 where: { id: sectionId },
                             });
-                        } catch (error) {
+                        } catch (error: any) {
+                            console.log("error",error.message)
                             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                                 switch (error.code) {
                                     case "P2025":

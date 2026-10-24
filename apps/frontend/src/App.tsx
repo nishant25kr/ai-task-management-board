@@ -10,7 +10,7 @@ export function App() {
 			<Routes>
 				<Route path="/" element={<Landing/>} />
 				<Route path="/auth/:auth" element={<Auth/>} />
-				<Route path="/dashboard/:username" element={<Dashboard/>} />
+				<Route path="/dashboard" element={<Dashboard/>} />
 				<Route path="/issues/:token" element={<Issue/>} />
 				<Route path="/boards/:organizationId" element={<Issue/>} />
 			</Routes>
