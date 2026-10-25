@@ -370,7 +370,6 @@ export const Issue = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
-      <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
         <BoardInfo
           handleBoardCreated={handleBoardCreated}

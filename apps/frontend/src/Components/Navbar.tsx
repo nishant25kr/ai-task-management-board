@@ -17,7 +17,7 @@ export const Navbar = () => {
             Trello Clone
           </Link>
           <nav className="hidden items-center gap-4 text-sm text-slate-600 md:flex">
-            <Link to="/dashboard/overview">Dashboard</Link>
+            <Link to="/dashboard">Dashboard</Link>
             <Link to="/boards">Boards</Link>
             <Link to="/issues">Issues</Link>
           </nav>

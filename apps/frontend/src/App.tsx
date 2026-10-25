@@ -4,9 +4,11 @@ import "./index.css";
 import {BrowserRouter,Route, Routes} from "react-router-dom"
 import { Auth } from "./Pages/Auth";
 import { Dashboard } from "./Pages/Dashboard";
+import { Navbar } from "./Components/Navbar";
 export function App() {
 	return (
 		<BrowserRouter>
+		<Navbar/>
 			<Routes>
 				<Route path="/" element={<Landing/>} />
 				<Route path="/auth/:auth" element={<Auth/>} />

@@ -62,7 +62,6 @@ export const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-white text-slate-800">
-            <Navbar />
 
             <main className="mx-auto grid max-w-6xl gap-6 px-6 py-6 md:grid-cols-[260px_1fr]">
                 <ProfileSection user={user} />
