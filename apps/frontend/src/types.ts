@@ -33,3 +33,21 @@ export interface Organization {
   name: string, 
   description: string 
 }
+export type RepositoryDetails = {
+    githubId: string;
+    owner: string;
+    name: string;
+    defaultBranch: string;
+    branches: string[];
+};
+
+export type ConnectRepositoryProps = {
+    boardId: string;
+    repo?: {
+        id: string;
+        githubId: string;
+        owner: string;
+        name: string;
+        defaultBranch: string;
+    } | null;
+};

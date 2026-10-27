@@ -1,25 +1,7 @@
 import axios from "axios";
 import { useState } from "react";
 import { API_BASE_URL } from "../config";
-
-type RepositoryDetails = {
-    githubId: string;
-    owner: string;
-    name: string;
-    defaultBranch: string;
-    branches: string[];
-};
-
-type ConnectRepositoryProps = {
-    boardId: string;
-    repo?: {
-        id: string;
-        githubId: string;
-        owner: string;
-        name: string;
-        defaultBranch: string;
-    } | null;
-};
+import type { ConnectRepositoryProps, RepositoryDetails } from "@/types";
 
 const GithubIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">

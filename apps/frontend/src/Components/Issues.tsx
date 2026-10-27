@@ -6,6 +6,7 @@ import { Navbar } from "./Navbar";
 import { WS_URL } from "../config";
 import { BoardInfo } from "./BoardInfo";
 import { SectionInfo } from "./SectionsInfo";
+import { Loading } from "./Loading";
 
 export const Issue = () => {
   const params = useParams();
@@ -380,7 +381,7 @@ export const Issue = () => {
         />
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">Loading board...</div>
+          <Loading/>
         ) : (
           <div className="space-y-4">
             {boardId && <ConnectRepository boardId={boardId} repo={repository} />}
