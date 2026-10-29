@@ -18,7 +18,7 @@ export const Dashboard = () => {
         setOrganizations(prevOrgs => prevOrgs ? [...prevOrgs, task] : [task]);
     }
 
-    const deleteOrganizations = (id: string) =>{
+    const deleteOrganizations = (id: string) => {
         setOrganizations(prev => (prev ?? []).filter(i => i.id !== id));
     }
 
@@ -69,7 +69,7 @@ export const Dashboard = () => {
                 <ProfileSection user={user} />
 
                 <section className="space-y-6">
-                    {fetchingOrganizations ? 
+                    {fetchingOrganizations ?
                         (
                             <div
                                 className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -95,18 +95,18 @@ export const Dashboard = () => {
                                 </div>
                             </div>
 
-                        ):(<div>
+                        ) : (<div>
 
-                            <RenderOrganizations 
-                            organizations={organizations} 
-                            memberorganizations={memberorganizations} 
-                            deleteOrg={deleteOrganizations}
+                            <RenderOrganizations
+                                organizations={organizations}
+                                memberorganizations={memberorganizations}
+                                deleteOrg={deleteOrganizations}
                             />
-                    <CreateOrganization addOrganizations={addOrganizations} />
-                            </div>
+                            <CreateOrganization addOrganizations={addOrganizations} />
+                        </div>
                         )
                     }
-                        
+
 
                 </section>
             </main>

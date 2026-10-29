@@ -10,17 +10,18 @@ export const RenderOrganizations =
         memberorganizations,
         deleteOrg
     }:
-    {
-        organizations: Organization[] | null,
-        memberorganizations: Organization[] | null,
-        deleteOrg: (id: string) => void
-    }) => {
+        {
+            organizations: Organization[] | null,
+            memberorganizations: Organization[] | null,
+            deleteOrg: (id: string) => void
+        }) => {
 
         const navigate = useNavigate();
         const [username, setUsername] = useState<string>("")
         const [invite, setInvite] = useState<boolean>(false)
         const [inviteOrgId, setInviteOrgId] = useState<string | null>(null);
         const [inviteResponseMessage, setInviteResponseMessage] = useState<string | null>(null)
+        const [loadingInvite, setLoadingInvite] = useState<boolean>(false);
 
         function handleJoin(id: string) {
             if (!id) return;
@@ -34,6 +35,7 @@ export const RenderOrganizations =
                 if (!token) return;
                 if (!inviteOrgId || !username) return;
                 //todo:fix this
+                setLoadingInvite(true);
                 const response = await axios.post(`${API_BASE_URL}/invite`, {
                     username: username,
                     organizationId: inviteOrgId
@@ -42,11 +44,12 @@ export const RenderOrganizations =
                         Authorization: `Bearer ${token}`
                     }
                 });
-
+                console.log('res',response)
                 setInviteResponseMessage(response.data.message)
 
                 setTimeout(() => {
                     setInvite(false)
+                    setLoadingInvite(false)
                     return;
                 }, 3000);
 
@@ -88,18 +91,50 @@ export const RenderOrganizations =
                 ) : (
                     <div className="grid gap-4 md:grid-cols-3 ">
                         {invite ? (
-                            <div className="rounded-lg border border-slate-300 p-4">
-                                <p>{inviteResponseMessage}</p>
-                                <input className="rounded border  border-slate-300" placeholder="username" onChange={(e) => setUsername(e.target.value)} />
-                                <button
-                                    className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
-                                    onClick={() => handleInvite()}
-                                >Add User</button>
-                                <button
-                                    className="mt-4 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
-                                    onClick={() => setInvite(false)}
-                                >Cancle</button>
-                            </div>
+                            <form
+                                className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    void handleInvite();
+                                }}
+                            >
+                                <h3 className="text-lg font-medium">Invite a member</h3>
+                                <p className="mt-1 text-sm text-slate-600">Enter their username to add them to this organization.</p>
+                                {inviteResponseMessage && (
+                                    <p className="mt-3 text-sm text-slate-700" role="status">{inviteResponseMessage}</p>
+                                )}
+                                <label className="mt-4 block text-sm font-medium" htmlFor="invite-username">Username</label>
+                                <input
+                                    id="invite-username"
+                                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="e.g. alex"
+                                    autoComplete="username"
+                                    required
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                                <div className="mt-4 flex gap-2">
+                                    <button
+                                        type="submit"
+                                        className="flex w-32 items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+                                        disabled={loadingInvite}
+                                    >
+                                        {loadingInvite ? (
+                                            <span
+                                                className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                                                aria-label="Sending invite"
+                                            />
+                                        ) : (
+                                            "Send invite"
+                                        )}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-white"
+                                        onClick={() => setInvite(false)}
+                                    >Cancel</button>
+                                </div>
+                            </form>
                         ) : (
                             <>
                                 {organizations?.map(org => (

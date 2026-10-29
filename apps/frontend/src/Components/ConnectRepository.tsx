@@ -129,7 +129,6 @@ export const ConnectRepository = ({ boardId, repo }: ConnectRepositoryProps) => 
         );
     }
 
-    /* ---------- Connect form ---------- */
     return (
         <section className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3">
