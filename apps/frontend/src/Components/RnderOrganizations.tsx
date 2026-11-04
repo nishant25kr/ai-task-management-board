@@ -29,22 +29,20 @@ export const RenderOrganizations =
         }
 
         async function handleInvite() {
-            console.log("hello there")
+            const token = localStorage.getItem("token");
+            if (!token) return;
+            if (!inviteOrgId || !username) return;
+            setLoadingInvite(true);
             try {
-                const token = localStorage.getItem("token");
-                if (!token) return;
-                if (!inviteOrgId || !username) return;
-                //todo:fix this
-                setLoadingInvite(true);
                 const response = await axios.post(`${API_BASE_URL}/invite`, {
                     username: username,
                     organizationId: inviteOrgId
                 }, {
-                    headers: {
+                    headers: {                          
                         Authorization: `Bearer ${token}`
-                    }
+                    }                                    
                 });
-                console.log('res',response)
+                console.log('res', response)
                 setInviteResponseMessage(response.data.message)
 
                 setTimeout(() => {
@@ -53,8 +51,8 @@ export const RenderOrganizations =
                     return;
                 }, 3000);
 
-            } catch (error) {
-
+            } catch (error: any) {
+                console.log("error", error)
             }
         }
 
