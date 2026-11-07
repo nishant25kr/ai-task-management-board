@@ -103,7 +103,6 @@ const invite = async (req: Request, res: Response) => {
         if (!user) {
             return res.status(404).json({ message: "Invalid username" });
         }
-
         const membership = await prisma.membership.create({
             data: {
                 userId: user.id,
