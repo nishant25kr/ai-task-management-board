@@ -38,9 +38,9 @@ export const RenderOrganizations =
                     username: username,
                     organizationId: inviteOrgId
                 }, {
-                    headers: {                          
+                    headers: {
                         Authorization: `Bearer ${token}`
-                    }                                    
+                    }
                 });
                 console.log('res', response)
                 setInviteResponseMessage(response.data.message)
@@ -52,7 +52,14 @@ export const RenderOrganizations =
                 }, 3000);
 
             } catch (error: any) {
-                console.log("error", error)
+                console.log("error", error.message)
+                setInviteResponseMessage(error.message)
+
+                setTimeout(() => {
+                    setInvite(false)
+                    setLoadingInvite(false)
+                    return;
+                }, 3000);
             }
         }
 
@@ -97,7 +104,6 @@ export const RenderOrganizations =
                                 }}
                             >
                                 <h3 className="text-lg font-medium">Invite a member</h3>
-                                <p className="mt-1 text-sm text-slate-600">Enter their username to add them to this organization.</p>
                                 {inviteResponseMessage && (
                                     <p className="mt-3 text-sm text-slate-700" role="status">{inviteResponseMessage}</p>
                                 )}
